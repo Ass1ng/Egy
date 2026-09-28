@@ -1,0 +1,34 @@
+{
+    "name": "egipcio-code",
+    "displayName": "Egípcio Code",
+    "description": "Syntax highlighting para o código egípcio do Egipcizador.",
+    "version": "1.0.0",
+    "publisher": "assing",
+    "engines": {
+        "vscode": "^1.80.0"
+    },
+    "categories": [
+        "Programming Languages"
+    ],
+    "contributes": {
+        "languages": [
+            {
+                "id": "egipcio",
+                "aliases": [
+                    "Egípcio",
+                    "egipcio"
+                ],
+                "extensions": [
+                    ".egy"
+                ]
+            }
+        ],
+        "grammars": [
+            {
+                "language": "egipcio",
+                "scopeName": "source.egipcio",
+                "path": "./syntaxes/egipcio.tmLanguage.json"
+            }
+        ]
+    }
+}
