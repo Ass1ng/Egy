@@ -1,0 +1,162 @@
+{
+    "name": "Egípcio",
+    "scopeName": "source.egipcio",
+
+    "patterns": [
+        {
+            "include": "#comments"
+        },
+        {
+            "include": "#strings"
+        },
+        {
+            "include": "#keywords"
+        },
+        {
+            "include": "#types"
+        },
+        {
+            "include": "#functions"
+        },
+        {
+            "include": "#numbers"
+        },
+        {
+            "include": "#operators"
+        }
+    ],
+
+    "repository": {
+
+        "comments": {
+            "patterns": [
+                {
+                    "name": "comment.line.egipcio",
+                    "match": "𓂻𓂻𓈖𓂋𓋴𓈖𓍿𓈖𓍿𓈖𓋴𓂻𓃀𓂻𓂻.*$"
+                }
+            ]
+        },
+
+        "strings": {
+            "patterns": [
+                {
+                    "name": "string.quoted.double.egipcio",
+                    "begin": "𓂻𓂻",
+                    "end": "𓂻𓂻",
+                    "patterns": [
+                        {
+                            "name": "constant.character.escape.egipcio",
+                            "match": "𓂻𓈖"
+                        }
+                    ]
+                },
+                {
+                    "name": "string.quoted.single.egipcio",
+                    "begin": "𓂻𓉐",
+                    "end": "𓂻𓉐"
+                }
+            ]
+        },
+
+        "keywords": {
+            "patterns": [
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓈖𓋴𓈖𓈖"
+                },
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓈖𓇋𓈖𓎛𓉐𓃀𓈖𓇋"
+                },
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓈖𓈖𓈖𓂋𓉐𓂻"
+                },
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓉐𓂻𓈖𓇋𓉐𓆣𓉐𓇋𓉐𓂻𓈖𓐍"
+                },
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓉐𓃀𓉐𓉐𓈖𓋴𓉐𓆣𓈖𓃀𓈖𓊪"
+                },
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓈖𓃀𓈖𓁐𓉐𓃀𓈖𓇋"
+                },
+                {
+                    "name": "keyword.control.egipcio",
+                    "match": "𓈖𓆣𓈖𓇋𓈖𓈖𓈖𓁐𓉐𓇋𓈖𓎛𓉐𓆣"
+                }
+            ]
+        },
+
+        "types": {
+            "patterns": [
+                {
+                    "name": "storage.type.egipcio",
+                    "match": "𓈖𓋴𓈖𓐍𓉐𓆣"
+                },
+                {
+                    "name": "storage.type.egipcio",
+                    "match": "𓈖𓈖𓈖𓎛𓈖𓂋𓈖𓁐𓉐𓆣"
+                },
+                {
+                    "name": "storage.type.egipcio",
+                    "match": "𓈖𓃀𓈖𓊪𓈖𓁐𓉐𓂻"
+                }
+            ]
+        },
+
+        "functions": {
+            "patterns": [
+                {
+                    "name": "entity.name.function.egipcio",
+                    "match": "𓈖𓏏𓈖𓁐𓈖𓋴𓈖𓐍"
+                },
+                {
+                    "name": "support.function.egipcio",
+                    "match": "𓉐𓂀𓉐𓂻𓈖𓋴𓈖𓐍𓉐𓆣𓈖𓈖"
+                },
+                {
+                    "name": "support.function.egipcio",
+                    "match": "𓉐𓃀𓈖𓃀𓈖𓁐𓈖𓐍𓈖𓈖"
+                }
+            ]
+        },
+
+        "numbers": {
+            "patterns": [
+                {
+                    "name": "constant.numeric.egipcio",
+                    "match": "(?:𓂀𓂀|𓂀𓁐|𓂀𓂻|𓂀𓃀|𓂀𓆣|𓂀𓇋|𓂀𓈖|𓂀𓉐|𓂀𓊪|𓂀𓋴|𓂀𓌙|𓂀𓍿|𓂀𓎛|𓂀𓏏|𓂀𓐍|𓂀𓂋)+"
+                }
+            ]
+        },
+
+        "operators": {
+            "patterns": [
+                {
+                    "name": "keyword.operator.arithmetic.egipcio",
+                    "match": "𓂻𓍿|𓂻𓏏|𓂻𓌙|𓂻𓂋|𓇋𓐍|𓂻𓁐"
+                },
+                {
+                    "name": "keyword.operator.assignment.egipcio",
+                    "match": "𓃀𓏏"
+                },
+                {
+                    "name": "keyword.operator.comparison.egipcio",
+                    "match": "𓃀𓎛|𓃀𓐍"
+                },
+                {
+                    "name": "punctuation.definition.block.egipcio",
+                    "match": "𓉐𓍿|𓉐𓏏"
+                },
+                {
+                    "name": "punctuation.terminator.statement.egipcio",
+                    "match": "𓃀𓍿"
+                }
+            ]
+        }
+    }
+}
