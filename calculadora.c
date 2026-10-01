@@ -1,8 +1,8 @@
 #include <stdio.h>
 #include <math.h>
 
-int fatorial(int n) {
-    int resultado = 1;
+long long fatorial(int n) {
+    long long resultado = 1;
 
     for (int i = 1; i <= n; i++) {
         resultado *= i;
@@ -22,9 +22,14 @@ int main() {
         printf("Digite o numero: ");
         scanf("%f", &num1);
 
-        resultado = fatorial((int)num1);
+        if (num1 < 0 || num1 != (int)num1) {
+            printf("Erro: fatorial exige um numero inteiro nao negativo!\n");
+            return 1;
+        }
 
-        printf("Resultado: %.0f\n", resultado);
+        long long fat = fatorial((int)num1);
+
+        printf("Resultado: %lld\n", fat);
     }
     else {
         printf("Digite o primeiro numero: ");
