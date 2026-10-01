@@ -1,25 +1,21 @@
+#```c
 #define _POSIX_C_SOURCE 200809L
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <sys/wait.h>
 #include <errno.h>
 
 #define TOTAL_SIMBOLOS 16
 
 /*
- * Cada byte do arquivo C e dividido em dois blocos de 4 bits.
+ * Cada simbolo egipcio usado pela Egy ocupa 4 bytes em UTF-8.
  *
- * Exemplo:
- *
- * byte = 0x41
- *
- * 4 = 0100
- * 1 = 0001
- *
- * Cada numero vira um hieroglifo.
+ * Cada byte do arquivo original e dividido em dois grupos de 4 bits.
+ * Cada grupo de 4 bits corresponde a um simbolo egipcio.
  */
 
 const char *egipcio[TOTAL_SIMBOLOS] = {
@@ -28,439 +24,402 @@ const char *egipcio[TOTAL_SIMBOLOS] = {
     "𓂻",
     "𓃀",
     "𓆣",
+    "𓅓",
     "𓇋",
-    "𓈖",
-    "𓉐",
+    "𓏏",
+    "𓎛",
+    "𓂋",
     "𓊪",
     "𓋴",
-    "𓌙",
-    "𓍿",
-    "𓎛",
-    "𓏏",
-    "𓐍",
-    "𓂋"
+    "𓈖",
+    "𓅱",
+    "𓄿",
+    "𓎼"
 };
 
 
 /*
- * Mostra como usar o programa.
+ * Escreve um simbolo egipcio correspondente a um valor
+ * de 0 a 15.
  */
-
-void ajuda(const char *programa)
+void escrever_simbolo(FILE *saida, int valor)
 {
-    printf("\n");
-    printf("EGIPCIZADOR\n");
-    printf("===========\n\n");
+    if (valor < 0 || valor >= TOTAL_SIMBOLOS)
+        return;
 
-    printf("Gerar arquivo egipcio:\n");
-    printf("  %s -e calculadora.c calculadora_egipcia.egy\n\n",
-           programa);
-
-    printf("Traduzir e compilar:\n");
-    printf("  %s -c calculadora_egipcia.egy calculadora\n\n",
-           programa);
+    fputs(egipcio[valor], saida);
 }
 
 
 /*
- * Escreve um hieroglifo no arquivo.
- */
-
-int escrever_simbolo(FILE *saida, int numero)
-{
-    if (fputs(egipcio[numero], saida) == EOF)
-        return 0;
-
-    return 1;
-}
-
-
-/*
- * CONVERTER C -> EGIPCIO
+ * Converte um arquivo normal para a representacao Egy.
  *
- * Cada byte do arquivo original vira dois hieroglifos.
+ * Cada byte:
+ *
+ *   1010 0110
+ *   ---- ----
+ *      10   6
+ *
+ * vira dois simbolos egipcios.
  */
-
-int gerar_egipcio(const char *entrada_nome,
-                  const char *saida_nome)
+int gerar_egipcio(const char *arquivo_entrada,
+                  const char *arquivo_saida)
 {
-    FILE *entrada;
-    FILE *saida;
+    FILE *entrada = fopen(arquivo_entrada, "rb");
+
+    if (!entrada)
+    {
+        perror("Erro ao abrir arquivo de entrada");
+        return 1;
+    }
+
+    FILE *saida = fopen(arquivo_saida, "wb");
+
+    if (!saida)
+    {
+        perror("Erro ao criar arquivo de saida");
+        fclose(entrada);
+        return 1;
+    }
 
     int caractere;
 
-    unsigned long quantidade = 0;
-
-
-    entrada = fopen(entrada_nome, "rb");
-
-    if (entrada == NULL)
-    {
-        perror("Erro abrindo arquivo");
-
-        return 1;
-    }
-
-
-    saida = fopen(saida_nome, "wb");
-
-    if (saida == NULL)
-    {
-        perror("Erro criando arquivo");
-
-        fclose(entrada);
-
-        return 1;
-    }
-
-
-    /*
-     * Lemos byte por byte.
-     */
-
     while ((caractere = fgetc(entrada)) != EOF)
     {
-        unsigned char byte;
+        unsigned char byte = (unsigned char)caractere;
 
-        int parte1;
-        int parte2;
+        int parte1 = (byte >> 4) & 0x0F;
+        int parte2 = byte & 0x0F;
 
-
-        byte = (unsigned char)caractere;
-
-
-        /*
-         * Pega os 4 bits superiores.
-         */
-
-        parte1 = (byte >> 4) & 0x0F;
-
-
-        /*
-         * Pega os 4 bits inferiores.
-         */
-
-        parte2 = byte & 0x0F;
-
-
-        if (!escrever_simbolo(saida, parte1))
-        {
-            printf("Erro escrevendo arquivo.\n");
-
-            fclose(entrada);
-            fclose(saida);
-
-            return 1;
-        }
-
-
-        if (!escrever_simbolo(saida, parte2))
-        {
-            printf("Erro escrevendo arquivo.\n");
-
-            fclose(entrada);
-            fclose(saida);
-
-            return 1;
-        }
-
-
-        quantidade++;
+        escrever_simbolo(saida, parte1);
+        escrever_simbolo(saida, parte2);
     }
 
+    if (ferror(entrada))
+    {
+        perror("Erro ao ler arquivo de entrada");
 
-    fclose(entrada);
-    fclose(saida);
+        fclose(entrada);
+        fclose(saida);
 
+        return 1;
+    }
 
-    printf("\n");
-    printf("=================================\n");
-    printf("      EGIPCIZACAO CONCLUIDA\n");
-    printf("=================================\n\n");
+    if (fclose(entrada) != 0)
+    {
+        perror("Erro ao fechar arquivo de entrada");
+        fclose(saida);
+        return 1;
+    }
 
-    printf("Entrada : %s\n", entrada_nome);
-    printf("Saida   : %s\n", saida_nome);
-    printf("Bytes   : %lu\n", quantidade);
-    printf("Simbolos: %lu\n\n", quantidade * 2);
-
+    if (fclose(saida) != 0)
+    {
+        perror("Erro ao fechar arquivo de saida");
+        return 1;
+    }
 
     return 0;
 }
 
 
 /*
- * Lê um hieroglifo UTF-8.
+ * Le um simbolo egipcio UTF-8.
  *
- * Cada hieroglifo usado neste programa possui 3 bytes UTF-8.
+ * Os simbolos utilizados pela Egy ocupam 4 bytes UTF-8.
  *
  * Retorna:
  *
  *  0  = fim do arquivo
- *  1  = simbolo encontrado
- * -1  = arquivo invalido
+ * -1  = simbolo invalido
+ *  1  = simbolo valido
+ *
+ * O valor correspondente ao simbolo e armazenado em *valor.
  */
-
 int ler_simbolo(FILE *arquivo, int *valor)
 {
-    unsigned char bytes[4];
+    unsigned char bytes[5];
 
-    int c1;
-    int c2;
-    int c3;
-
-
-    c1 = fgetc(arquivo);
-
+    int c1 = fgetc(arquivo);
 
     if (c1 == EOF)
+    {
+        if (ferror(arquivo))
+            return -1;
+
         return 0;
+    }
 
+    int c2 = fgetc(arquivo);
+    int c3 = fgetc(arquivo);
+    int c4 = fgetc(arquivo);
 
-    c2 = fgetc(arquivo);
-
-    c3 = fgetc(arquivo);
-
-
-    if (c2 == EOF || c3 == EOF)
+    if (c2 == EOF || c3 == EOF || c4 == EOF)
         return -1;
-
 
     bytes[0] = (unsigned char)c1;
     bytes[1] = (unsigned char)c2;
     bytes[2] = (unsigned char)c3;
-    bytes[3] = '\0';
-
-
-    /*
-     * Compara com cada hieroglifo.
-     */
+    bytes[3] = (unsigned char)c4;
+    bytes[4] = '\0';
 
     for (int i = 0; i < TOTAL_SIMBOLOS; i++)
     {
         if (strcmp((char *)bytes, egipcio[i]) == 0)
         {
             *valor = i;
-
             return 1;
         }
     }
-
 
     return -1;
 }
 
 
 /*
- * CONVERTER EGIPCIO -> C
+ * Converte um arquivo Egy de volta para o arquivo original.
  *
- * Dois hieroglifos formam um byte.
+ * Dois simbolos egipcios representam um byte.
  */
-
-int traduzir_egipcio(const char *entrada_nome,
-                     FILE *saida)
+int traduzir_egipcio(const char *arquivo_entrada,
+                     const char *arquivo_saida)
 {
-    FILE *entrada;
+    FILE *entrada = fopen(arquivo_entrada, "rb");
 
-    int primeiro;
-    int segundo;
-
-    unsigned long bytes = 0;
-
-
-    entrada = fopen(entrada_nome, "rb");
-
-    if (entrada == NULL)
+    if (!entrada)
     {
-        perror("Erro abrindo arquivo egipcio");
+        perror("Erro ao abrir arquivo Egy");
+        return 1;
+    }
+
+    FILE *saida = fopen(arquivo_saida, "wb");
+
+    if (!saida)
+    {
+        perror("Erro ao criar arquivo de saida");
+
+        fclose(entrada);
 
         return 1;
     }
 
-
     while (1)
     {
-        int resultado;
+        int primeiro;
+        int segundo;
 
-
-        /*
-         * Primeiro meio-byte.
-         */
-
-        resultado = ler_simbolo(entrada, &primeiro);
-
+        int resultado = ler_simbolo(entrada, &primeiro);
 
         if (resultado == 0)
             break;
 
-
-        if (resultado < 0)
+        if (resultado == -1)
         {
-            printf("Arquivo egipcio invalido.\n");
+            fprintf(stderr,
+                    "Erro: simbolo Egy invalido ou arquivo corrompido.\n");
 
             fclose(entrada);
+            fclose(saida);
 
             return 1;
         }
-
-
-        /*
-         * Segundo meio-byte.
-         */
 
         resultado = ler_simbolo(entrada, &segundo);
 
-
-        if (resultado <= 0)
+        if (resultado != 1)
         {
-            printf("Arquivo egipcio esta incompleto.\n");
+            fprintf(stderr,
+                    "Erro: arquivo Egy possui quantidade invalida de simbolos.\n");
 
             fclose(entrada);
+            fclose(saida);
 
             return 1;
         }
 
+        unsigned char byte =
+            (unsigned char)((primeiro << 4) | segundo);
 
-        /*
-         * Junta os dois blocos de 4 bits.
-         */
+        fputc(byte, saida);
 
-        unsigned char byte;
-
-        byte = (unsigned char)
-               ((primeiro << 4) | segundo);
-
-
-        /*
-         * Escreve o byte original.
-         */
-
-        if (fputc(byte, saida) == EOF)
+        if (ferror(saida))
         {
-            printf("Erro escrevendo C.\n");
+            perror("Erro ao escrever arquivo de saida");
 
             fclose(entrada);
+            fclose(saida);
 
             return 1;
         }
-
-
-        bytes++;
     }
 
+    if (ferror(entrada))
+    {
+        perror("Erro ao ler arquivo Egy");
 
-    fclose(entrada);
+        fclose(entrada);
+        fclose(saida);
 
+        return 1;
+    }
+
+    if (fclose(entrada) != 0)
+    {
+        perror("Erro ao fechar arquivo Egy");
+        fclose(saida);
+        return 1;
+    }
+
+    if (fclose(saida) != 0)
+    {
+        perror("Erro ao fechar arquivo de saida");
+        return 1;
+    }
 
     return 0;
 }
 
 
 /*
- * TRADUZ E CHAMA O GCC
+ * Compila um arquivo C temporario utilizando GCC.
+ *
+ * O arquivo Egy e primeiro convertido para C temporario.
+ * Depois o GCC compila esse C para o executavel final.
  */
-
-int compilar_egipcio(const char *entrada_nome,
+int compilar_egipcio(const char *arquivo_egy,
                      const char *programa_saida)
 {
-    char caminho_temp[] = "/tmp/egipcizador-XXXXXX";
+    char caminho_temp[] = "/tmp/egy_XXXXXX";
 
-    int descritor;
+    int fd = mkstemp(caminho_temp);
 
-    FILE *arquivo_temp;
-
-    pid_t processo;
-
-    int status;
-
-
-    /*
-     * Cria arquivo temporario.
-     */
-
-    descritor = mkstemp(caminho_temp);
-
-
-    if (descritor == -1)
+    if (fd == -1)
     {
-        perror("Erro criando temporario");
+        perror("Erro ao criar arquivo temporario");
+        return 1;
+    }
+
+    FILE *temporario = fdopen(fd, "wb");
+
+    if (!temporario)
+    {
+        perror("Erro ao abrir arquivo temporario");
+
+        close(fd);
+        unlink(caminho_temp);
 
         return 1;
     }
 
+    /*
+     * Converte Egy para C.
+     */
+    FILE *entrada = fopen(arquivo_egy, "rb");
 
-    arquivo_temp = fdopen(descritor, "wb");
-
-
-    if (arquivo_temp == NULL)
+    if (!entrada)
     {
-        perror("Erro abrindo temporario");
+        perror("Erro ao abrir arquivo Egy");
 
-        close(descritor);
+        fclose(temporario);
+        unlink(caminho_temp);
+
+        return 1;
+    }
+
+    while (1)
+    {
+        int primeiro;
+        int segundo;
+
+        int resultado = ler_simbolo(entrada, &primeiro);
+
+        if (resultado == 0)
+            break;
+
+        if (resultado == -1)
+        {
+            fprintf(stderr,
+                    "Erro: simbolo Egy invalido ou arquivo corrompido.\n");
+
+            fclose(entrada);
+            fclose(temporario);
+            unlink(caminho_temp);
+
+            return 1;
+        }
+
+        resultado = ler_simbolo(entrada, &segundo);
+
+        if (resultado != 1)
+        {
+            fprintf(stderr,
+                    "Erro: arquivo Egy possui quantidade invalida de simbolos.\n");
+
+            fclose(entrada);
+            fclose(temporario);
+            unlink(caminho_temp);
+
+            return 1;
+        }
+
+        unsigned char byte =
+            (unsigned char)((primeiro << 4) | segundo);
+
+        fputc(byte, temporario);
+
+        if (ferror(temporario))
+        {
+            perror("Erro ao escrever arquivo temporario");
+
+            fclose(entrada);
+            fclose(temporario);
+            unlink(caminho_temp);
+
+            return 1;
+        }
+    }
+
+    if (ferror(entrada))
+    {
+        perror("Erro ao ler arquivo Egy");
+
+        fclose(entrada);
+        fclose(temporario);
+        unlink(caminho_temp);
+
+        return 1;
+    }
+
+    fclose(entrada);
+
+    if (fclose(temporario) != 0)
+    {
+        perror("Erro ao fechar arquivo temporario");
+        unlink(caminho_temp);
+
+        return 1;
+    }
+
+    /*
+     * Cria processo filho para executar GCC.
+     */
+    pid_t pid = fork();
+
+    if (pid == -1)
+    {
+        perror("Erro ao criar processo");
 
         unlink(caminho_temp);
 
         return 1;
     }
 
-
-    printf("\n");
-    printf("Traduzindo hieroglifos para C...\n");
-
-
-    /*
-     * Reconstrói o código C.
-     */
-
-    if (traduzir_egipcio(entrada_nome,
-                         arquivo_temp) != 0)
-    {
-        fclose(arquivo_temp);
-
-        unlink(caminho_temp);
-
-        return 1;
-    }
-
-
-    fclose(arquivo_temp);
-
-
-    printf("C reconstruido.\n");
-    printf("Chamando GCC...\n\n");
-
-
-    /*
-     * Cria processo para executar GCC.
-     */
-
-    processo = fork();
-
-
-    if (processo == -1)
-    {
-        perror("Erro no fork");
-
-        unlink(caminho_temp);
-
-        return 1;
-    }
-
-
-    /*
-     * Processo filho.
-     */
-
-    if (processo == 0)
+    if (pid == 0)
     {
         /*
-         * -x c:
-         * fala para o GCC tratar o arquivo temporario
-         * como codigo C.
+         * Processo filho.
          *
-         * -lm:
-         * necessario para pow().
+         * gcc -x c arquivo_temporario -o programa -lm
          */
-
         execlp(
             "gcc",
             "gcc",
@@ -473,131 +432,203 @@ int compilar_egipcio(const char *entrada_nome,
             (char *)NULL
         );
 
-
-        /*
-         * Se chegou aqui, o GCC nao abriu.
-         */
-
         perror("Nao foi possivel executar GCC");
 
         _exit(127);
     }
 
-
     /*
-     * Processo principal espera o GCC.
+     * Processo pai espera o GCC terminar.
      */
+    int status;
 
-    if (waitpid(processo,
-                &status,
-                0) == -1)
+    if (waitpid(pid, &status, 0) == -1)
     {
-        perror("Erro esperando GCC");
+        perror("Erro ao esperar pelo GCC");
 
         unlink(caminho_temp);
 
         return 1;
     }
 
-
-    /*
-     * Apaga o C temporario.
-     */
-
     unlink(caminho_temp);
-
 
     if (WIFEXITED(status))
     {
-        int codigo;
-
-        codigo = WEXITSTATUS(status);
-
+        int codigo = WEXITSTATUS(status);
 
         if (codigo == 0)
-        {
-            printf("\n");
-            printf("==============================\n");
-            printf("       COMPILADO!\n");
-            printf("==============================\n\n");
-
-            printf("Executavel: %s\n\n",
-                   programa_saida);
-
             return 0;
-        }
 
-
-        printf("\n");
-        printf("O GCC terminou com codigo %d.\n",
-               codigo);
+        fprintf(stderr,
+                "GCC terminou com codigo %d.\n",
+                codigo);
 
         return codigo;
     }
 
+    if (WIFSIGNALED(status))
+    {
+        fprintf(stderr,
+                "GCC foi encerrado pelo sinal %d.\n",
+                WTERMSIG(status));
+
+        return 1;
+    }
 
     return 1;
 }
 
 
 /*
- * MAIN
+ * Mostra a ajuda do programa.
  */
+void mostrar_ajuda(const char *programa)
+{
+    printf("\n");
+    printf("Egy - Egyptian Esoteric Programming Language\n");
+    printf("\n");
 
+    printf("Uso:\n");
+    printf("  %s -e <entrada> <saida>\n", programa);
+    printf("  %s -d <entrada> <saida>\n", programa);
+    printf("  %s -c <entrada.egy> <executavel>\n", programa);
+
+    printf("\n");
+
+    printf("Opcoes:\n");
+    printf("  -e    Converte um arquivo para Egy\n");
+    printf("  -d    Converte um arquivo Egy para o formato original\n");
+    printf("  -c    Converte Egy para C e compila com GCC\n");
+    printf("  -h    Mostra esta ajuda\n");
+    printf("  --help Mostra esta ajuda\n");
+
+    printf("\n");
+
+    printf("Exemplos:\n");
+    printf("  %s -e programa.c programa.egy\n", programa);
+    printf("  %s -d programa.egy programa.c\n", programa);
+    printf("  %s -c programa.egy programa\n", programa);
+
+    printf("\n");
+}
+
+
+/*
+ * Funcao principal.
+ */
 int main(int argc, char *argv[])
 {
     /*
-     * Precisamos de:
-     *
-     * -e entrada saida
-     *
-     * ou
-     *
-     * -c entrada_egipcia executavel
+     * Sem argumentos:
+     * mostra ajuda.
      */
+    if (argc == 1)
+    {
+        mostrar_ajuda(argv[0]);
+        return 0;
+    }
 
+    /*
+     * Ajuda.
+     */
+    if (strcmp(argv[1], "-h") == 0 ||
+        strcmp(argv[1], "--help") == 0)
+    {
+        mostrar_ajuda(argv[0]);
+        return 0;
+    }
+
+    /*
+     * Todas as operacoes normais precisam de:
+     *
+     * programa
+     * opcao
+     * entrada
+     * saida
+     *
+     * argc = 4
+     */
     if (argc != 4)
     {
-        ajuda(argv[0]);
+        fprintf(stderr,
+                "Numero incorreto de argumentos.\n");
+
+        mostrar_ajuda(argv[0]);
 
         return 1;
     }
 
+    const char *opcao = argv[1];
+    const char *entrada = argv[2];
+    const char *saida = argv[3];
 
     /*
-     * MODO EGIPCIO
+     * C -> Egy
      */
-
-    if (strcmp(argv[1], "-e") == 0)
+    if (strcmp(opcao, "-e") == 0)
     {
-        return gerar_egipcio(
-            argv[2],
-            argv[3]
-        );
-    }
+        printf("Convertendo para Egy...\n");
 
+        int resultado =
+            gerar_egipcio(entrada, saida);
+
+        if (resultado == 0)
+        {
+            printf("Conversao concluida!\n");
+            printf("Arquivo: %s\n", saida);
+        }
+
+        return resultado;
+    }
 
     /*
-     * MODO COMPILAR
+     * Egy -> C
      */
-
-    if (strcmp(argv[1], "-c") == 0)
+    if (strcmp(opcao, "-d") == 0)
     {
-        return compilar_egipcio(
-            argv[2],
-            argv[3]
-        );
+        printf("Convertendo Egy...\n");
+
+        int resultado =
+            traduzir_egipcio(entrada, saida);
+
+        if (resultado == 0)
+        {
+            printf("Conversao concluida!\n");
+            printf("Arquivo: %s\n", saida);
+        }
+
+        return resultado;
     }
 
+    /*
+     * Egy -> C temporario -> GCC -> executavel
+     */
+    if (strcmp(opcao, "-c") == 0)
+    {
+        printf("Compilando Egy...\n");
+
+        int resultado =
+            compilar_egipcio(entrada, saida);
+
+        if (resultado == 0)
+        {
+            printf("Compilacao concluida!\n");
+            printf("Executavel: %s\n", saida);
+        }
+
+        return resultado;
+    }
 
     /*
      * Opcao desconhecida.
      */
+    fprintf(stderr,
+            "Opcao desconhecida: %s\n",
+            opcao);
 
-    printf("Opcao desconhecida: %s\n\n",
-           argv[1]);
-
-    ajuda(argv[0]);
+    mostrar_ajuda(argv[0]);
 
     return 1;
 }
+```
